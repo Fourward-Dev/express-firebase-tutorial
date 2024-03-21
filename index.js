@@ -2,7 +2,7 @@ import express from "express";
 import "dotenv/config";
 import db from "./firebas.config.js";
 import { body, validationResult } from "express-validator";
-import { verify } from "./helpers/idToken.checker.js";
+import { OAuth2Client } from "google-auth-library";
 import { errorResponder } from "./error-handlers/errorResponder.js";
 import { snapshot, teachersRef } from "./helpers/queries.js";
 const app = express();
@@ -34,7 +34,7 @@ app.post(
 
     try {
       //TODO check email existence
-      const snapshotRes = await snapshot(email);
+      const snapshotRes = await snapshot(req.body.email);
       if (!snapshotRes.empty) {
         const error = new Error("Account already exists");
         error.statusCode = 409;
@@ -61,27 +61,30 @@ app.post(
       .notEmpty()
       .withMessage("phoneModelName is required!"),
   ],
-  async (req, res, next) => {
+  (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).send({ errors: errors.array() });
     }
-    //idToken verification
-    let payload;
-    let email;
-    try {
-      payload = await verify(req.body.idToken);
-    } catch (error) {
-      error = new Error("unauthorized");
-      error.statusCode = 401;
-      throw error;
-    }
 
-    email = payload["email"];
-    //retrieve teacher by email
+    const client = new OAuth2Client();
+    client
+      .verifyIdToken({
+        idToken: req.body.idToken,
+        // eslint-disable-next-line no-undef
+        audience: process.env.CLIENT_ID,
+      })
+      .then((ticket) => {
+        const payload = ticket.getPayload();
+        req.user.email = payload["email"];
+        next();
+      })
+      .catch(next);
+  },
+  async (req, res, next) => {
     let error;
     try {
-      const snapshotRes = await snapshot(email);
+      const snapshotRes = await snapshot(req.user.email);
       //check if account exist or not
       if (snapshotRes.empty || !snapshotRes.docs[0].data().email) {
         error = new Error("teacher account does not exists");
@@ -100,7 +103,9 @@ app.post(
           brand: req.body.brand,
           phoneModelName: req.body.phoneModelName,
         });
-        res.status(201).send({ succMsg: "logged in successfully" });
+        res
+          .status(201)
+          .send({ succMsg: "device identifier successfully saved" });
       } else {
         //check device info
         const isExists = devicesSubCollection.docs.some(
