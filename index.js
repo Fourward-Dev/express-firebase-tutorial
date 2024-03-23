@@ -1,6 +1,5 @@
 import express from "express";
 import "dotenv/config";
-import db from "./firebas.config.js";
 import { body, validationResult } from "express-validator";
 import { OAuth2Client } from "google-auth-library";
 import { errorResponder } from "./error-handlers/errorResponder.js";
@@ -10,46 +9,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const port = 3000;
 
-app.post(
-  "/teacher",
-  [
-    body("email")
-      .trim()
-      .notEmpty()
-      .escape()
-      .isEmail()
-      .withMessage("Email must be an email!"),
-    body("devicesNumber")
-      .notEmpty()
-      .escape()
-      .isInt()
-      .toInt()
-      .withMessage("devicesNumber must be int!"),
-  ],
-  async (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).send({ errors: errors.array() });
-    }
-
-    try {
-      //TODO check email existence
-      const snapshotRes = await snapshot(req.body.email);
-      if (!snapshotRes.empty) {
-        const error = new Error("Account already exists");
-        error.statusCode = 409;
-        throw error;
-      }
-      await db.collection("teachers").add({
-        email: req.body.email,
-        devicesNumber: req.body.devicesNumber,
-      });
-      res.status(201).send({ succMsg: "account created" });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
 
 app.post(
   "/teacher/login",
