@@ -76,7 +76,7 @@ app.post(
       })
       .then((ticket) => {
         const payload = ticket.getPayload();
-        req.user.email = payload["email"];
+        req.user = payload;
         next();
       })
       .catch(next);
