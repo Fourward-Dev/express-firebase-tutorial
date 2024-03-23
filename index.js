@@ -9,6 +9,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const port = 3000;
 
+app.get("/", (req, res) => {
+  res.status(200).send({ message: "hello world!" });
+});
 
 app.post(
   "/teacher/login",
