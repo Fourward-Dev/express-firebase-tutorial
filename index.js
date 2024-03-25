@@ -64,6 +64,7 @@ app.post(
         await teacherDevicesRef.add({
           brand: req.body.brand,
           phoneModelName: req.body.phoneModelName,
+          date: new Date().toLocaleDateString("fr-FR"),
         });
         res
           .status(201)
