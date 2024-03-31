@@ -3,8 +3,9 @@ import express from "express";
 import "dotenv/config";
 import { body, validationResult } from "express-validator";
 import { OAuth2Client } from "google-auth-library";
+import db from "./firebas.config.js";
 import { errorResponder } from "./error-handlers/errorResponder.js";
-import { snapshot, teachersRef } from "./helpers/queries.js";
+import getTeacherDoc from "./helpers/queries.js";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -47,16 +48,16 @@ app.post(
   async (req, res, next) => {
     let error;
     try {
-      const snapshotRes = await snapshot(req.user.email);
+      const teacherDoc = await getTeacherDoc(req.user.email);
       //check if account exist or not
-      if (snapshotRes.empty || !snapshotRes.docs[0].data().email) {
+      if (!teacherDoc.exists) {
         error = new Error("teacher account does not exists");
         error.statusCode = 404;
         throw error;
       }
-      const teacherDoc = snapshotRes.docs[0];
-      const teacherDevicesRef = teachersRef
-        .doc(teacherDoc.id)
+      const teacherDevicesRef = db
+        .collection("teachers")
+        .doc(req.user.email)
         .collection("devices");
       const devicesSubCollection = await teacherDevicesRef.get();
       //check if the teacher has reached the device limit
