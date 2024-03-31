@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import express from "express";
 import "dotenv/config";
 import { body, validationResult } from "express-validator";
@@ -7,7 +8,7 @@ import { snapshot, teachersRef } from "./helpers/queries.js";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {
   res.status(200).send({ message: "hello world!" });
