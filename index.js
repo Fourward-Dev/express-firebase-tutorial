@@ -3,9 +3,12 @@ import express from "express";
 import "dotenv/config";
 import { body, validationResult } from "express-validator";
 import { OAuth2Client } from "google-auth-library";
-import db from "./firebas.config.js";
 import { errorResponder } from "./error-handlers/errorResponder.js";
-import getTeacherDoc from "./helpers/queries.js";
+import {
+  addDevice,
+  isAccountExists,
+  isDeviceExists,
+} from "./authenticationController.js";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -48,43 +51,22 @@ app.post(
   async (req, res, next) => {
     let error;
     try {
-      const teacherDoc = await getTeacherDoc(req.user.email);
+      const email = req.user.email;
+      const { brand, phoneModelName } = req.body;
+      const accountExists = await isAccountExists(email);
       //check if account exist or not
-      if (!teacherDoc.exists) {
+      if (!accountExists) {
         error = new Error("teacher account does not exists");
         error.statusCode = 404;
         throw error;
       }
-      const teacherDevicesRef = db
-        .collection("teachers")
-        .doc(req.user.email)
-        .collection("devices");
-      const devicesSubCollection = await teacherDevicesRef.get();
-      //check if the teacher has reached the device limit
-      if (devicesSubCollection.docs.length < teacherDoc.data().devicesNumber) {
-        //update teacher doc (add devices sub-collaction)
-        await teacherDevicesRef.add({
-          brand: req.body.brand,
-          phoneModelName: req.body.phoneModelName,
-          date: new Date().toLocaleDateString("fr-FR"),
-        });
-        res
-          .status(201)
-          .send({ succMsg: "device identifier successfully saved" });
-      } else {
-        //check device info
-        const isExists = devicesSubCollection.docs.some(
-          (doc) =>
-            doc.data().brand === req.body.brand &&
-            doc.data().phoneModelName === req.body.phoneModelName
-        );
-        if (!isExists) {
-          error = new Error("unauthorized");
-          error.statusCode = 401;
-          throw error;
-        }
-        res.status(200).send({ succMsg: "logged in successfully" });
+      const deviceExists = await isDeviceExists(email, brand, phoneModelName);
+      if (!deviceExists) {
+        //call add device
+        await addDevice(email, brand, phoneModelName);
+        return res.status(200).send({ succMsg: "logged in successfully" });
       }
+      res.status(200).send({ succMsg: "logged in successfully" });
     } catch (error) {
       next(error);
     }
@@ -92,6 +74,8 @@ app.post(
 );
 
 app.use(errorResponder);
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`ClassQ Server listening on port ${port}`);
 });
+
+export { server, app };
