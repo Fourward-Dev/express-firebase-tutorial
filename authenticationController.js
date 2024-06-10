@@ -1,4 +1,4 @@
-import db from "./firebas.config";
+import db from "./firebas.config.js";
 
 const teacherDevicesRef = (email) => {
   return db.collection("teachers").doc(email).collection("devices");
