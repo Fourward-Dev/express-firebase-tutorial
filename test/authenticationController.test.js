@@ -1,34 +1,38 @@
 /* eslint-disable no-undef */
 import {
   addDevice,
-  isAccountExists,
+  getTeacherPlan,
   isDeviceExists,
-} from "../authenticationController";
-import db from "../firebas.config";
+} from "../controllers/authenticationController.js";
+import db from "../firebas-config";
 import {
   deleteDevicesSubCollection,
-  deleteTeacherDoc,
+  deleteDoc,
 } from "../helpers/deleteFromFirstore";
 
-
 beforeEach(async () => await deleteDevicesSubCollection("test@gmail.com"));
-beforeEach(async () => await deleteTeacherDoc("test@gmail.com"));
+beforeEach(async () => await deleteDoc("teachers", "test@gmail.com"));
 beforeEach(
   async () =>
     await db
       .collection("teachers")
       .doc("test@gmail.com")
-      .set({ devicesNumber: 1 })
+      .set({ devicesNumber: 1, planId: 1 })
 );
 
 describe("test authenticationController", () => {
-  test("isAccountExists: invalid account", async () => {
-    const isExists = await isAccountExists("invalid@gmail.com");
-    expect(isExists).toBe(false);
+  test("getTeacherPlan: invalid account", async () => {
+    try {
+      await getTeacherPlan("invalid@gmail.com");
+    } catch (e) {
+      const expectedError = new Error("teacher account does not exists");
+      expectedError.statusCode = 404;
+      expect(e).toEqual(expectedError);
+    }
   });
-  test("isAccountExists: valid account", async () => {
-    const isExists = await isAccountExists("test@gmail.com");
-    expect(isExists).toBe(true);
+  test("getTeacherPlan: valid account", async () => {
+    const planId = await getTeacherPlan("test@gmail.com");
+    expect(planId).toBe(1);
   });
   test("isDeviceExists: login with unregistred device", async () => {
     const isExists = await isDeviceExists(

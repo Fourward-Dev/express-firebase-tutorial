@@ -1,14 +1,20 @@
-import db from "./firebas.config.js";
+import db from "../firebase-config.js";
 
 const teacherDevicesRef = (email) => {
   return db.collection("teachers").doc(email).collection("devices");
 };
 
-//check if the account exists
-const isAccountExists = async (email) => {
+const getTeacherPlan = async (email) => {
   const teacherDocSnapShot = await db.collection("teachers").doc(email).get();
-  if (!teacherDocSnapShot.exists) return false;
-  return true;
+  //check if the account exists
+  if (!teacherDocSnapShot.exists) {
+    const error = new Error("teacher account does not exists");
+    error.statusCode = 404;
+    throw error;
+  }
+  const teacher = teacherDocSnapShot.data();
+  const { planId } = teacher;
+  return planId;
 };
 
 //check device existence
@@ -42,4 +48,4 @@ const addDevice = async (email, brand, phoneModelName) => {
   throw error;
 };
 
-export { isAccountExists, isDeviceExists, addDevice };
+export { getTeacherPlan, isDeviceExists, addDevice };

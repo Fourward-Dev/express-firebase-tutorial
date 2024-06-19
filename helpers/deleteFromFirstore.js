@@ -1,4 +1,4 @@
-import db from "../firebas.config";
+import db from "../firebas-config";
 const deleteDevicesSubCollection = async (email) => {
   const collectionRef = db
     .collection("teachers")
@@ -9,8 +9,9 @@ const deleteDevicesSubCollection = async (email) => {
   await Promise.all(docs);
 };
 
-const deleteTeacherDoc = async (email) => {
-  await db.collection("teachers").doc(email).delete();
+const deleteDoc = async (collectionName, docId) => {
+  if (collectionName === "plans") parseInt(docId);
+  await db.collection(collectionName).doc(docId).delete();
 };
 
-export { deleteDevicesSubCollection, deleteTeacherDoc };
+export { deleteDevicesSubCollection, deleteDoc };
